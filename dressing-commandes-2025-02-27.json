@@ -1,0 +1,45 @@
+{
+  "pendingOrders": [
+    {
+      "name": "Commande Amoses du vendredi 28 fev",
+      "store": "Amoses",
+      "expectedDate": "",
+      "trackingNumber": "",
+      "note": "",
+      "items": [
+        {
+          "name": "BARBWIRE KNIT",
+          "type": "haut",
+          "subType": "",
+          "color": "Marron",
+          "price": 99.9,
+          "imageUrl": "https://amosesclothing.com/cdn/shop/files/BARBWIREKNITAMOSES_e14727bc-c476-4ddc-a8e6-7f7a5f9ed08a.jpg?v=1738663856&width=800",
+          "id": "1740666519060"
+        },
+        {
+          "name": "ASHEN FLUFF BEANIE",
+          "type": "accessoire",
+          "subType": "",
+          "color": "Noir/Gris",
+          "price": 29.9,
+          "imageUrl": "https://amosesclothing.com/cdn/shop/files/ASHENFLUFFBEANIE.jpg?v=1738666446&width=800",
+          "id": "1740666555092"
+        },
+        {
+          "name": "POSTAGE HOODIE",
+          "type": "haut",
+          "subType": "pull",
+          "color": "Noir",
+          "price": 89.9,
+          "imageUrl": "https://amosesclothing.com/cdn/shop/files/POSTAGEHOODIE_4a4adb0d-62ad-4fa4-8c27-18edee942d8a.jpg?v=1738669960&width=800",
+          "id": "1740666588068"
+        }
+      ],
+      "id": "1740666589671",
+      "createdAt": "2025-02-27T14:29:49.672Z",
+      "updatedAt": "2025-02-27T14:29:49.672Z",
+      "status": "pending"
+    }
+  ],
+  "exportDate": "2025-02-27T15:01:53.876Z"
+}

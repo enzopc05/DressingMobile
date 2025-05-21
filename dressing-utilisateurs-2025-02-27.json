@@ -1,0 +1,41 @@
+{
+  "users": [
+    {
+      "id": "user1",
+      "name": "Ines",
+      "color": "#fa00c4",
+      "isAdmin": false
+    },
+    {
+      "id": "user2",
+      "name": "Sami",
+      "color": "#1c6f11",
+      "isAdmin": false
+    },
+    {
+      "id": "user3",
+      "name": "Willem",
+      "color": "#2e6bcc",
+      "isAdmin": false
+    },
+    {
+      "id": "user4",
+      "name": "Meno",
+      "color": "#f39c12",
+      "isAdmin": false
+    },
+    {
+      "id": "enzo",
+      "name": "Enzo",
+      "color": "#8e44ad",
+      "isAdmin": true
+    },
+    {
+      "id": "user5",
+      "name": "Maxime",
+      "color": "#db333c",
+      "isAdmin": false
+    }
+  ],
+  "exportDate": "2025-02-27T15:01:31.681Z"
+}
