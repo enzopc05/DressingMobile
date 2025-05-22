@@ -4,120 +4,161 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  FlatList,
+  TextInput,
   Alert,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
-import {
-  getAuthorizedUsers,
-  loginUser,
-  logoutUser,
-  getCurrentUser,
-  initAuth,
-} from "../utils/simpleAuthService";
 import { Ionicons } from "@expo/vector-icons";
+import {
+  logout,
+  getCurrentUser,
+  updateUserProfile,
+} from "../utils/authService";
 
-function UserScreen({ navigation, route, setIsLoggedIn, setIsAdmin }) {
-  const [users, setUsers] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+function UserScreen({ setIsLoggedIn, setCurrentUser, currentUser }) {
+  const [user, setUser] = useState(currentUser);
+  const [loading, setLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    email: "",
+    username: "",
+    password: "",
+    confirmPassword: "",
+  });
 
-  // Charger les utilisateurs et l'utilisateur actuel
+  // Charger les données utilisateur
   useEffect(() => {
-    const loadUsersData = async () => {
+    const loadUserData = async () => {
       try {
-        await initAuth();
-        const usersList = await getAuthorizedUsers();
-        setUsers(usersList);
-
-        const user = getCurrentUser();
-        setCurrentUser(user);
-
-        if (user) {
-          // Si l'utilisateur est déjà connecté, mettre à jour l'état global
-          if (setIsLoggedIn) setIsLoggedIn(true);
-          if (setIsAdmin) setIsAdmin(user.isAdmin || false);
+        const userData = await getCurrentUser();
+        if (userData) {
+          setUser(userData);
+          setEditForm({
+            name: userData.name || "",
+            email: userData.email || "",
+            username: userData.username || "",
+            password: "",
+            confirmPassword: "",
+          });
         }
       } catch (error) {
-        console.error("Erreur de chargement des utilisateurs:", error);
-        Alert.alert("Erreur", "Impossible de charger les utilisateurs");
-      } finally {
-        setLoading(false);
+        console.error("Erreur de chargement des données utilisateur:", error);
       }
     };
 
-    loadUsersData();
-  }, []);
-
-  // Gérer la sélection d'un utilisateur
-  const handleUserSelection = async (userId) => {
-    setLoading(true);
-    try {
-      const user = await loginUser(userId);
-      setCurrentUser(user);
-
-      // Mettre à jour l'état global
-      if (setIsLoggedIn) setIsLoggedIn(true);
-      if (setIsAdmin) setIsAdmin(user.isAdmin || false);
-
-      // Si nous sommes dans un contexte de navigation (pas dans l'écran initial)
-      if (navigation) {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: "Vêtements" }],
-        });
-      }
-    } catch (error) {
-      console.error("Erreur de connexion:", error);
-      Alert.alert("Erreur", "Échec de la connexion");
-    } finally {
-      setLoading(false);
+    if (!user) {
+      loadUserData();
+    } else {
+      setEditForm({
+        name: user.name || "",
+        email: user.email || "",
+        username: user.username || "",
+        password: "",
+        confirmPassword: "",
+      });
     }
-  };
+  }, [user]);
 
   // Gérer la déconnexion
   const handleLogout = async () => {
+    Alert.alert(
+      "Déconnexion",
+      "Êtes-vous sûr de vouloir vous déconnecter ?",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Déconnecter",
+          style: "destructive",
+          onPress: async () => {
+            setLoading(true);
+            try {
+              const success = await logout();
+              if (success) {
+                setCurrentUser(null);
+                setIsLoggedIn(false);
+              } else {
+                Alert.alert("Erreur", "Impossible de se déconnecter");
+              }
+            } catch (error) {
+              console.error("Erreur de déconnexion:", error);
+              Alert.alert("Erreur", "Une erreur est survenue lors de la déconnexion");
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Gérer la sauvegarde du profil
+  const handleSaveProfile = async () => {
+    if (!editForm.name.trim() || !editForm.email.trim() || !editForm.username.trim()) {
+      Alert.alert("Erreur", "Veuillez remplir tous les champs obligatoires");
+      return;
+    }
+
+    if (editForm.password && editForm.password !== editForm.confirmPassword) {
+      Alert.alert("Erreur", "Les mots de passe ne correspondent pas");
+      return;
+    }
+
+    if (editForm.password && editForm.password.length < 6) {
+      Alert.alert("Erreur", "Le mot de passe doit contenir au moins 6 caractères");
+      return;
+    }
+
     setLoading(true);
     try {
-      await logoutUser();
-      setCurrentUser(null);
+      const updateData = {
+        name: editForm.name,
+        email: editForm.email,
+        username: editForm.username,
+      };
 
-      // Mettre à jour l'état global
-      if (setIsLoggedIn) setIsLoggedIn(false);
-      if (setIsAdmin) setIsAdmin(false);
+      // N'inclure le mot de passe que s'il a été modifié
+      if (editForm.password) {
+        updateData.password = editForm.password;
+      }
 
-      // Si nous sommes dans un contexte de navigation
-      if (navigation) {
-        // Retourner à l'écran précédent ou rester sur l'écran actuel
-        // mais avec l'état déconnecté
+      const result = await updateUserProfile(user.id, updateData);
+      
+      if (result.success) {
+        setUser(result.user);
+        setCurrentUser(result.user);
+        setIsEditing(false);
+        setEditForm({
+          ...editForm,
+          password: "",
+          confirmPassword: "",
+        });
+        Alert.alert("Succès", "Profil mis à jour avec succès");
+      } else {
+        Alert.alert("Erreur", result.message);
       }
     } catch (error) {
-      console.error("Erreur de déconnexion:", error);
-      Alert.alert("Erreur", "Échec de la déconnexion");
+      console.error("Erreur de mise à jour du profil:", error);
+      Alert.alert("Erreur", "Une erreur est survenue lors de la mise à jour");
     } finally {
       setLoading(false);
     }
   };
 
-  // Rendu de l'élément utilisateur
-  const renderUserItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.userItem}
-      onPress={() => handleUserSelection(item.id)}
-    >
-      <View style={[styles.userAvatar, { backgroundColor: item.color }]}>
-        <Text style={styles.userInitial}>{item.name.charAt(0)}</Text>
-      </View>
-      <Text style={styles.userName}>{item.name}</Text>
-      {item.isAdmin && (
-        <View style={styles.adminBadge}>
-          <Text style={styles.adminText}>Admin</Text>
-        </View>
-      )}
-    </TouchableOpacity>
-  );
+  // Annuler l'édition
+  const handleCancelEdit = () => {
+    setEditForm({
+      name: user.name || "",
+      email: user.email || "",
+      username: user.username || "",
+      password: "",
+      confirmPassword: "",
+    });
+    setIsEditing(false);
+  };
 
-  if (loading) {
+  if (loading && !user) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#3498db" />
@@ -126,64 +167,185 @@ function UserScreen({ navigation, route, setIsLoggedIn, setIsAdmin }) {
     );
   }
 
-  // Si l'utilisateur est connecté
-  if (currentUser) {
+  if (!user) {
     return (
-      <View style={styles.container}>
-        <View style={styles.profileSection}>
-          <View
-            style={[
-              styles.profileAvatar,
-              { backgroundColor: currentUser.color },
-            ]}
-          >
-            <Text style={styles.profileInitial}>
-              {currentUser.name.charAt(0)}
-            </Text>
-          </View>
-          <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{currentUser.name}</Text>
-            {currentUser.isAdmin && (
-              <View style={styles.profileAdminBadge}>
-                <Text style={styles.profileAdminText}>Administrateur</Text>
-              </View>
-            )}
-          </View>
-        </View>
-
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={24} color="white" />
-          <Text style={styles.logoutText}>Déconnexion</Text>
-        </TouchableOpacity>
-
-        {/* Ajouter d'autres options si nécessaire */}
+      <View style={styles.errorContainer}>
+        <Ionicons name="alert-circle" size={80} color="#e74c3c" />
+        <Text style={styles.errorText}>Erreur de chargement du profil</Text>
       </View>
     );
   }
 
-  // Si l'utilisateur n'est pas connecté
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Bienvenue dans votre Dressing Virtuel</Text>
-      <Text style={styles.subtitle}>
-        Choisissez un utilisateur pour commencer
-      </Text>
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <View style={[styles.avatar, { backgroundColor: user.color || "#3498db" }]}>
+          <Text style={styles.avatarText}>
+            {user.name ? user.name.charAt(0).toUpperCase() : "?"}
+          </Text>
+        </View>
+        
+        {!isEditing ? (
+          <View style={styles.userInfo}>
+            <Text style={styles.userName}>{user.name}</Text>
+            <Text style={styles.userEmail}>{user.email}</Text>
+            <Text style={styles.userUsername}>@{user.username}</Text>
+            {user.isAdmin && (
+              <View style={styles.adminBadge}>
+                <Text style={styles.adminText}>Administrateur</Text>
+              </View>
+            )}
+          </View>
+        ) : null}
+      </View>
 
-      <FlatList
-        data={users}
-        renderItem={renderUserItem}
-        keyExtractor={(item) => item.id}
-        style={styles.userList}
-        numColumns={2}
-      />
-    </View>
+      {isEditing ? (
+        <View style={styles.editForm}>
+          <Text style={styles.sectionTitle}>Modifier le profil</Text>
+          
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Nom complet *</Text>
+            <TextInput
+              style={styles.input}
+              value={editForm.name}
+              onChangeText={(text) => setEditForm({...editForm, name: text})}
+              placeholder="Votre nom complet"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Email *</Text>
+            <TextInput
+              style={styles.input}
+              value={editForm.email}
+              onChangeText={(text) => setEditForm({...editForm, email: text})}
+              placeholder="votre@email.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Nom d'utilisateur *</Text>
+            <TextInput
+              style={styles.input}
+              value={editForm.username}
+              onChangeText={(text) => setEditForm({...editForm, username: text})}
+              placeholder="nom_utilisateur"
+              autoCapitalize="none"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Nouveau mot de passe (optionnel)</Text>
+            <TextInput
+              style={styles.input}
+              value={editForm.password}
+              onChangeText={(text) => setEditForm({...editForm, password: text})}
+              placeholder="Laisser vide pour conserver l'actuel"
+              secureTextEntry
+              autoCapitalize="none"
+            />
+          </View>
+
+          {editForm.password ? (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Confirmer le nouveau mot de passe</Text>
+              <TextInput
+                style={styles.input}
+                value={editForm.confirmPassword}
+                onChangeText={(text) => setEditForm({...editForm, confirmPassword: text})}
+                placeholder="Confirmer le mot de passe"
+                secureTextEntry
+                autoCapitalize="none"
+              />
+            </View>
+          ) : null}
+
+          <View style={styles.editActions}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={handleCancelEdit}
+              disabled={loading}
+            >
+              <Text style={styles.cancelButtonText}>Annuler</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.saveButton}
+              onPress={handleSaveProfile}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text style={styles.saveButtonText}>Sauvegarder</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.profileActions}>
+          <TouchableOpacity
+            style={styles.editProfileButton}
+            onPress={() => setIsEditing(true)}
+          >
+            <Ionicons name="create-outline" size={24} color="white" />
+            <Text style={styles.editProfileText}>Modifier le profil</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <View style={styles.accountInfo}>
+        <Text style={styles.sectionTitle}>Informations du compte</Text>
+        
+        <View style={styles.infoRow}>
+          <Ionicons name="person-outline" size={20} color="#7f8c8d" />
+          <View style={styles.infoContent}>
+            <Text style={styles.infoLabel}>Statut</Text>
+            <Text style={styles.infoValue}>
+              {user.isAdmin ? "Administrateur" : "Utilisateur"}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.infoRow}>
+          <Ionicons name="calendar-outline" size={20} color="#7f8c8d" />
+          <View style={styles.infoContent}>
+            <Text style={styles.infoLabel}>Membre depuis</Text>
+            <Text style={styles.infoValue}>
+              {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "Date inconnue"}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.infoRow}>
+          <Ionicons name="time-outline" size={20} color="#7f8c8d" />
+          <View style={styles.infoContent}>
+            <Text style={styles.infoLabel}>Dernière modification</Text>
+            <Text style={styles.infoValue}>
+              {user.updatedAt ? new Date(user.updatedAt).toLocaleDateString() : "Jamais"}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.dangerZone}>
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={handleLogout}
+          disabled={loading}
+        >
+          <Ionicons name="log-out-outline" size={24} color="white" />
+          <Text style={styles.logoutText}>Déconnexion</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
     backgroundColor: "#f8f9fa",
   },
   loadingContainer: {
@@ -197,125 +359,199 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#3498db",
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 10,
-    color: "#2c3e50",
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: "center",
-    marginBottom: 30,
-    color: "#7f8c8d",
-  },
-  userList: {
+  errorContainer: {
     flex: 1,
-  },
-  userItem: {
-    flex: 1,
-    alignItems: "center",
-    padding: 15,
-    margin: 8,
-    backgroundColor: "white",
-    borderRadius: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  userAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 10,
-  },
-  userInitial: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "white",
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#2c3e50",
-  },
-  adminBadge: {
-    marginTop: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    backgroundColor: "#8e44ad",
-    borderRadius: 10,
-  },
-  adminText: {
-    fontSize: 12,
-    color: "white",
-    fontWeight: "bold",
-  },
-  // Styles pour l'utilisateur connecté
-  profileSection: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "white",
-    borderRadius: 15,
+    backgroundColor: "#f8f9fa",
     padding: 20,
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
-  profileAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  errorText: {
+    fontSize: 18,
+    color: "#e74c3c",
+    textAlign: "center",
+    marginTop: 20,
+  },
+  header: {
+    backgroundColor: "white",
+    padding: 20,
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 20,
+    marginBottom: 15,
   },
-  profileInitial: {
+  avatarText: {
     fontSize: 36,
     fontWeight: "bold",
     color: "white",
   },
-  profileInfo: {
-    flex: 1,
+  userInfo: {
+    alignItems: "center",
   },
-  profileName: {
-    fontSize: 22,
+  userName: {
+    fontSize: 24,
     fontWeight: "bold",
     color: "#2c3e50",
     marginBottom: 5,
   },
-  profileAdminBadge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: "#8e44ad",
-    borderRadius: 10,
+  userEmail: {
+    fontSize: 16,
+    color: "#7f8c8d",
+    marginBottom: 3,
   },
-  profileAdminText: {
+  userUsername: {
     fontSize: 14,
+    color: "#95a5a6",
+    marginBottom: 10,
+  },
+  adminBadge: {
+    backgroundColor: "#8e44ad",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  adminText: {
     color: "white",
+    fontSize: 12,
     fontWeight: "bold",
   },
-  logoutButton: {
-    flexDirection: "row",
-    backgroundColor: "#e74c3c",
+  editForm: {
+    backgroundColor: "white",
+    margin: 15,
+    padding: 20,
     borderRadius: 10,
-    padding: 15,
-    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#2c3e50",
+    marginBottom: 15,
+  },
+  inputGroup: {
+    marginBottom: 15,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#34495e",
+    marginBottom: 5,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: "#f9f9f9",
+  },
+  editActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 20,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: "#95a5a6",
+    padding: 12,
+    borderRadius: 8,
     alignItems: "center",
+    marginRight: 10,
+  },
+  cancelButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  saveButton: {
+    flex: 1,
+    backgroundColor: "#3498db",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    marginLeft: 10,
+  },
+  saveButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  profileActions: {
+    margin: 15,
+  },
+  editProfileButton: {
+    backgroundColor: "#3498db",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 15,
+    borderRadius: 10,
+  },
+  editProfileText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
+    marginLeft: 10,
+  },
+  accountInfo: {
+    backgroundColor: "white",
+    margin: 15,
+    padding: 20,
+    borderRadius: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  infoContent: {
+    marginLeft: 15,
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 14,
+    color: "#7f8c8d",
+    marginBottom: 2,
+  },
+  infoValue: {
+    fontSize: 16,
+    color: "#2c3e50",
+    fontWeight: "500",
+  },
+  dangerZone: {
+    margin: 15,
+    marginBottom: 30,
+  },
+  logoutButton: {
+    backgroundColor: "#e74c3c",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 15,
+    borderRadius: 10,
   },
   logoutText: {
     color: "white",
     fontWeight: "bold",
-    fontSize: 18,
+    fontSize: 16,
     marginLeft: 10,
   },
 });

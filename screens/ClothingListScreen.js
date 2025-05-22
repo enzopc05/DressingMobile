@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { getClothes, deleteClothing } from "../utils/dataService";
-import { getCurrentUserId } from "../utils/simpleAuthService";
+import { getCurrentUser } from "../utils/authService";
 import {
   getMainCategories,
   getSubCategories,
@@ -35,7 +35,8 @@ function ClothingListScreen({ navigation, route }) {
     const loadClothes = async () => {
       try {
         setLoading(true);
-        const userId = getCurrentUserId();
+        const user = await getCurrentUser();
+        const userId = user ? user.id : null;        
         const loadedClothes = await getClothes(userId);
         setClothes(loadedClothes);
 
@@ -92,7 +93,8 @@ function ClothingListScreen({ navigation, route }) {
   // Gérer la suppression d'un vêtement
   const handleDeleteClothing = async (id) => {
     try {
-      const userId = getCurrentUserId();
+      const user = await getCurrentUser();
+      const userId = user ? user.id : null;
       const success = await deleteClothing(id, userId);
       if (success) {
         setClothes(clothes.filter((item) => item.id !== id));

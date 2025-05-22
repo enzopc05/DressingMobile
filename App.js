@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createStackNavigator } from "@react-navigation/stack";
 import { Ionicons } from "@expo/vector-icons";
 import * as SplashScreen from "expo-splash-screen";
 
@@ -11,25 +12,56 @@ import ClothingFormScreen from "./screens/ClothingFormScreen";
 import OutfitCreatorScreen from "./screens/OutfitCreatorScreen";
 import ColorAssistantScreen from "./screens/ColorAssistantScreen";
 import PendingOrdersScreen from "./screens/PendingOrdersScreen";
+import OrderFormScreen from "./screens/OrderFormScreen";
 import UserScreen from "./screens/UserScreen";
+import LoginScreen from "./screens/LoginScreen";
 
-// Importer les services
+// Importer les services - CHANGEMENT ICI
 import {
   initAuth,
   getCurrentUser,
-  isCurrentUserAdmin,
-} from "./utils/simpleAuthService";
+  isLoggedIn,
+} from "./utils/authService";
 
-// Créer le navigateur d'onglets
+// Créer les navigateurs
 const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator();
+
+// Créer un stack pour les commandes
+function OrdersStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: "#3498db",
+        },
+        headerTintColor: "#fff",
+        headerTitleStyle: {
+          fontWeight: "bold",
+        },
+      }}
+    >
+      <Stack.Screen 
+        name="CommandesListe" 
+        component={PendingOrdersScreen}
+        options={{ title: "Commandes" }}
+      />
+      <Stack.Screen 
+        name="AjouterCommande" 
+        component={OrderFormScreen}
+        options={{ title: "Gestion de commande" }}
+      />
+    </Stack.Navigator>
+  );
+}
 
 // Garder l'écran de démarrage visible
 SplashScreen.preventAutoHideAsync();
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
   // Préparer l'application
   useEffect(() => {
@@ -39,10 +71,11 @@ export default function App() {
         await initAuth();
 
         // Vérifier si un utilisateur est connecté
-        const currentUser = getCurrentUser();
-        if (currentUser) {
-          setIsLoggedIn(true);
-          setIsAdmin(isCurrentUserAdmin());
+        const loggedIn = await isLoggedIn();
+        if (loggedIn) {
+          const user = await getCurrentUser();
+          setCurrentUser(user);
+          setIsUserLoggedIn(true);
         }
       } catch (e) {
         console.warn("Erreur de préparation de l'application:", e);
@@ -60,8 +93,13 @@ export default function App() {
   }
 
   // Si l'utilisateur n'est pas connecté, afficher l'écran de connexion
-  if (!isLoggedIn) {
-    return <UserScreen setIsLoggedIn={setIsLoggedIn} setIsAdmin={setIsAdmin} />;
+  if (!isUserLoggedIn) {
+    return (
+      <LoginScreen 
+        setIsLoggedIn={setIsUserLoggedIn} 
+        setCurrentUser={setCurrentUser}
+      />
+    );
   }
 
   return (
@@ -102,12 +140,22 @@ export default function App() {
         <Tab.Screen name="Vêtements" component={ClothingListScreen} />
         <Tab.Screen name="Ajouter" component={ClothingFormScreen} />
         <Tab.Screen name="Tenues" component={OutfitCreatorScreen} />
-        <Tab.Screen name="Commandes" component={PendingOrdersScreen} />
+        <Tab.Screen 
+          name="Commandes" 
+          component={OrdersStack}
+          options={{
+            headerShown: false, // Le header sera géré par le Stack
+          }}
+        />
         <Tab.Screen name="Couleurs" component={ColorAssistantScreen} />
         <Tab.Screen
           name="Profil"
           children={() => (
-            <UserScreen setIsLoggedIn={setIsLoggedIn} setIsAdmin={setIsAdmin} />
+            <UserScreen 
+              setIsLoggedIn={setIsUserLoggedIn} 
+              setCurrentUser={setCurrentUser}
+              currentUser={currentUser}
+            />
           )}
         />
       </Tab.Navigator>

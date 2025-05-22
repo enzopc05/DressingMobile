@@ -13,7 +13,7 @@ import {
   deletePendingOrder,
   receiveOrder,
 } from "../utils/dataService";
-import { getCurrentUserId } from "../utils/simpleAuthService";
+import { getCurrentUser } from "../utils/authService"; // CHANGEMENT ICI
 
 function PendingOrdersScreen({ navigation }) {
   const [pendingOrders, setPendingOrders] = useState([]);
@@ -26,7 +26,9 @@ function PendingOrdersScreen({ navigation }) {
     const loadOrders = async () => {
       try {
         setLoading(true);
-        const userId = getCurrentUserId();
+        // CHANGEMENT ICI
+        const user = await getCurrentUser();
+        const userId = user ? user.id : null;
         const allOrders = await getPendingOrders(userId);
 
         // Séparer les commandes en attente et reçues
@@ -55,11 +57,12 @@ function PendingOrdersScreen({ navigation }) {
 
   // Gérer l'ajout d'une nouvelle commande
   const handleAddOrder = () => {
-    // Version simplifiée - Dans une vraie app, naviguez vers un écran de formulaire
-    Alert.alert(
-      "Fonctionnalité simplifiée",
-      "Cette fonctionnalité n'est pas disponible dans cette version simplifiée"
-    );
+    navigation.navigate("AjouterCommande"); // CHANGEMENT ICI
+  };
+
+  // Gérer la modification d'une commande
+  const handleEditOrder = (order) => {
+    navigation.navigate("AjouterCommande", { order: order }); // NOUVEAU
   };
 
   // Gérer la suppression d'une commande
@@ -75,7 +78,9 @@ function PendingOrdersScreen({ navigation }) {
           onPress: async () => {
             try {
               setLoading(true);
-              const userId = getCurrentUserId();
+              // CHANGEMENT ICI
+              const user = await getCurrentUser();
+              const userId = user ? user.id : null;
               const success = await deletePendingOrder(orderId, userId);
 
               if (success) {
@@ -110,7 +115,9 @@ function PendingOrdersScreen({ navigation }) {
           onPress: async () => {
             try {
               setLoading(true);
-              const userId = getCurrentUserId();
+              // CHANGEMENT ICI
+              const user = await getCurrentUser();
+              const userId = user ? user.id : null;
               const result = await receiveOrder(orderId, userId);
 
               if (result.success) {
@@ -255,6 +262,12 @@ function PendingOrdersScreen({ navigation }) {
 
           {isPending && (
             <View style={styles.orderActions}>
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={() => handleEditOrder(item)}
+              >
+                <Text style={styles.buttonText}>Modifier</Text>
+              </TouchableOpacity>
               <TouchableOpacity
                 style={styles.receiveButton}
                 onPress={() => handleReceiveOrder(item.id)}
@@ -500,13 +513,21 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginTop: 10,
   },
+  editButton: {
+    flex: 1,
+    backgroundColor: "#f39c12",
+    padding: 10,
+    borderRadius: 5,
+    alignItems: "center",
+    marginRight: 5,
+  },
   receiveButton: {
     flex: 1,
     backgroundColor: "#2ecc71",
     padding: 10,
     borderRadius: 5,
     alignItems: "center",
-    marginRight: 5,
+    marginHorizontal: 2.5,
   },
   deleteButton: {
     flex: 1,

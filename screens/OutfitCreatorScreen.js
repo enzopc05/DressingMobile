@@ -16,7 +16,7 @@ import {
   addOutfit,
   deleteOutfit,
 } from "../utils/dataService";
-import { getCurrentUserId } from "../utils/simpleAuthService";
+import { getCurrentUser } from "../utils/authService";
 import ClothingItemComponent from "../components/ClothingItemComponent";
 
 function OutfitCreatorScreen({ navigation, route }) {
@@ -33,7 +33,8 @@ function OutfitCreatorScreen({ navigation, route }) {
     const loadData = async () => {
       try {
         setLoading(true);
-        const userId = getCurrentUserId();
+        const user = await getCurrentUser();
+        const userId = user ? user.id : null;
 
         // Charger les vêtements
         const loadedClothes = await getClothes(userId);
@@ -104,7 +105,8 @@ function OutfitCreatorScreen({ navigation, route }) {
         items: selectedItems,
       };
 
-      const userId = getCurrentUserId();
+      const user = await getCurrentUser();
+      const userId = user ? user.id : null;
       const outfitId = await addOutfit(newOutfit, userId);
 
       // Mettre à jour l'état local
@@ -143,7 +145,8 @@ function OutfitCreatorScreen({ navigation, route }) {
             try {
               setLoading(true);
 
-              const userId = getCurrentUserId();
+              const user = await getCurrentUser();
+              const userId = user ? user.id : null;
               const success = await deleteOutfit(outfitId, userId);
 
               if (success) {

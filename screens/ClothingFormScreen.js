@@ -17,7 +17,7 @@ import {
   getSubCategories,
 } from "../utils/clothingCategories";
 import { addClothing, updateClothing } from "../utils/dataService";
-import { getCurrentUserId } from "../utils/simpleAuthService";
+import { getCurrentUser } from "../utils/authService";
 
 function ClothingFormScreen({ navigation, route }) {
   const editClothing = route.params?.clothing;
@@ -134,7 +134,8 @@ function ClothingFormScreen({ navigation, route }) {
     setIsLoading(true);
 
     try {
-      const userId = getCurrentUserId();
+      const user = await getCurrentUser();
+      const userId = user ? user.id : null;
       const formattedForm = { ...form };
 
       // Convertir le prix en nombre

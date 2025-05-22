@@ -1,5 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Alert } from 'react-native';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Alert } from "react-native";
 
 // Clés de stockage
 const STORAGE_KEYS = {
@@ -23,7 +23,8 @@ export const initAuth = async () => {
           name: "Moi",
           email: "moi@example.com",
           color: "#3498db",
-          isAdmin: false
+          isAdmin: false,
+          createdAt: new Date().toISOString(),
         },
         {
           id: "admin1",
@@ -32,11 +33,15 @@ export const initAuth = async () => {
           name: "Admin",
           email: "admin@example.com",
           color: "#8e44ad",
-          isAdmin: true
+          isAdmin: true,
+          createdAt: new Date().toISOString(),
         },
       ];
 
-      await AsyncStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(defaultUsers));
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.USERS,
+        JSON.stringify(defaultUsers)
+      );
     }
 
     return true;
@@ -63,7 +68,10 @@ export const getCurrentUser = async () => {
     const userJson = await AsyncStorage.getItem(STORAGE_KEYS.CURRENT_USER);
     return userJson ? JSON.parse(userJson) : null;
   } catch (error) {
-    console.error("Erreur lors de la récupération de l'utilisateur actuel:", error);
+    console.error(
+      "Erreur lors de la récupération de l'utilisateur actuel:",
+      error
+    );
     return null;
   }
 };
@@ -72,25 +80,35 @@ export const getCurrentUser = async () => {
 export const login = async (username, password) => {
   try {
     const users = await getUsers();
-    const user = users.find(u =>
-      (u.username.toLowerCase() === username.toLowerCase() ||
-       u.email.toLowerCase() === username.toLowerCase()) &&
-       u.password === password
+    const user = users.find(
+      (u) =>
+        (u.username.toLowerCase() === username.toLowerCase() ||
+          u.email.toLowerCase() === username.toLowerCase()) &&
+        u.password === password
     );
 
     if (!user) {
-      return { success: false, message: "Identifiant ou mot de passe incorrect" };
+      return {
+        success: false,
+        message: "Identifiant ou mot de passe incorrect",
+      };
     }
 
     // Créer une version sécurisée de l'utilisateur (sans le mot de passe) pour stocker en mémoire
     const secureUser = { ...user };
     delete secureUser.password;
 
-    await AsyncStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(secureUser));
+    await AsyncStorage.setItem(
+      STORAGE_KEYS.CURRENT_USER,
+      JSON.stringify(secureUser)
+    );
     return { success: true, user: secureUser };
   } catch (error) {
     console.error("Erreur de connexion:", error);
-    return { success: false, message: "Une erreur est survenue lors de la connexion" };
+    return {
+      success: false,
+      message: "Une erreur est survenue lors de la connexion",
+    };
   }
 };
 
@@ -117,14 +135,15 @@ export const register = async (userData) => {
     // Vérifier si le nom d'utilisateur ou l'email existe déjà
     const users = await getUsers();
     const userExists = users.some(
-      u => u.username.toLowerCase() === userData.username.toLowerCase() ||
-           u.email.toLowerCase() === userData.email.toLowerCase()
+      (u) =>
+        u.username.toLowerCase() === userData.username.toLowerCase() ||
+        u.email.toLowerCase() === userData.email.toLowerCase()
     );
 
     if (userExists) {
       return {
         success: false,
-        message: "Cet identifiant ou cette adresse email est déjà utilisé(e)"
+        message: "Cet identifiant ou cette adresse email est déjà utilisé(e)",
       };
     }
 
@@ -138,14 +157,19 @@ export const register = async (userData) => {
       password: userData.password,
       name: userData.name || userData.username,
       email: userData.email,
-      color: userData.color || "#" + Math.floor(Math.random()*16777215).toString(16), // Couleur aléatoire
+      color:
+        userData.color ||
+        "#" + Math.floor(Math.random() * 16777215).toString(16), // Couleur aléatoire
       isAdmin: false, // Les nouveaux utilisateurs ne sont pas admin par défaut
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
 
     // Ajouter l'utilisateur à la liste
     const updatedUsers = [...users, newUser];
-    await AsyncStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updatedUsers));
+    await AsyncStorage.setItem(
+      STORAGE_KEYS.USERS,
+      JSON.stringify(updatedUsers)
+    );
 
     // Créer une version sécurisée (sans le mot de passe)
     const secureUser = { ...newUser };
@@ -156,7 +180,7 @@ export const register = async (userData) => {
     console.error("Erreur d'inscription:", error);
     return {
       success: false,
-      message: "Une erreur est survenue lors de l'inscription"
+      message: "Une erreur est survenue lors de l'inscription",
     };
   }
 };
@@ -165,24 +189,28 @@ export const register = async (userData) => {
 export const updateUserProfile = async (userId, userData) => {
   try {
     const users = await getUsers();
-    const userIndex = users.findIndex(u => u.id === userId);
+    const userIndex = users.findIndex((u) => u.id === userId);
 
     if (userIndex === -1) {
       return { success: false, message: "Utilisateur non trouvé" };
     }
 
     // Si le nom d'utilisateur ou l'email change, vérifier qu'il n'est pas déjà pris
-    if (userData.username !== users[userIndex].username || userData.email !== users[userIndex].email) {
+    if (
+      userData.username !== users[userIndex].username ||
+      userData.email !== users[userIndex].email
+    ) {
       const userExists = users.some(
-        (u, index) => index !== userIndex &&
+        (u, index) =>
+          index !== userIndex &&
           (u.username.toLowerCase() === userData.username.toLowerCase() ||
-           u.email.toLowerCase() === userData.email.toLowerCase())
+            u.email.toLowerCase() === userData.email.toLowerCase())
       );
 
       if (userExists) {
         return {
           success: false,
-          message: "Cet identifiant ou cette adresse email est déjà utilisé(e)"
+          message: "Cet identifiant ou cette adresse email est déjà utilisé(e)",
         };
       }
     }
@@ -191,7 +219,7 @@ export const updateUserProfile = async (userId, userData) => {
     const updatedUser = {
       ...users[userIndex],
       ...userData,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
 
     // Si le mot de passe est vide, conserver l'ancien
@@ -210,7 +238,10 @@ export const updateUserProfile = async (userId, userData) => {
     if (currentUser && currentUser.id === userId) {
       const secureUser = { ...updatedUser };
       delete secureUser.password;
-      await AsyncStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(secureUser));
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.CURRENT_USER,
+        JSON.stringify(secureUser)
+      );
     }
 
     // Retourner une version sécurisée
@@ -222,7 +253,21 @@ export const updateUserProfile = async (userId, userData) => {
     console.error("Erreur de mise à jour du profil:", error);
     return {
       success: false,
-      message: "Une erreur est survenue lors de la mise à jour du profil"
+      message: "Une erreur est survenue lors de la mise à jour du profil",
     };
+  }
+};
+
+/**
+ * Vérifie si l'utilisateur actuel est administrateur
+ * @returns {Promise<boolean>} - True si l'utilisateur est administrateur
+ */
+export const isCurrentUserAdmin = async () => {
+  try {
+    const user = await getCurrentUser();
+    return user ? user.isAdmin : false;
+  } catch (error) {
+    console.error("Erreur lors de la vérification des droits admin:", error);
+    return false;
   }
 };

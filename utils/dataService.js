@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getCurrentUser } from "./authService"; // CHANGEMENT ICI
 
 // Clés de stockage
 const STORAGE_KEYS = {
@@ -8,18 +9,27 @@ const STORAGE_KEYS = {
   PENDING_ORDERS: "pendingOrders",
 };
 
-// Identifiant temporaire de l'utilisateur (sera remplacé par un système d'authentification)
-const TEMP_USER_ID = "default-user";
+// Fonction helper pour obtenir l'ID utilisateur actuel
+const getCurrentUserId = async () => {
+  try {
+    const user = await getCurrentUser();
+    return user ? user.id : "default-user";
+  } catch (error) {
+    console.error("Erreur lors de la récupération de l'ID utilisateur:", error);
+    return "default-user";
+  }
+};
 
 /**
  * Récupère les vêtements de l'utilisateur
  * @param {string} userId - Identifiant de l'utilisateur (facultatif)
  * @returns {Promise<Array>} - Tableau des vêtements
  */
-export const getClothes = async (userId = TEMP_USER_ID) => {
+export const getClothes = async (userId = null) => {
   try {
+    const finalUserId = userId || await getCurrentUserId();
     const storedData = await AsyncStorage.getItem(
-      `${STORAGE_KEYS.CLOTHES}_${userId}`
+      `${STORAGE_KEYS.CLOTHES}_${finalUserId}`
     );
     return storedData ? JSON.parse(storedData) : [];
   } catch (error) {
@@ -34,10 +44,11 @@ export const getClothes = async (userId = TEMP_USER_ID) => {
  * @param {string} userId - Identifiant de l'utilisateur (facultatif)
  * @returns {Promise<boolean>} - Succès de la sauvegarde
  */
-export const saveClothes = async (clothes, userId = TEMP_USER_ID) => {
+export const saveClothes = async (clothes, userId = null) => {
   try {
+    const finalUserId = userId || await getCurrentUserId();
     await AsyncStorage.setItem(
-      `${STORAGE_KEYS.CLOTHES}_${userId}`,
+      `${STORAGE_KEYS.CLOTHES}_${finalUserId}`,
       JSON.stringify(clothes)
     );
     return true;
@@ -52,10 +63,11 @@ export const saveClothes = async (clothes, userId = TEMP_USER_ID) => {
  * @param {string} userId - Identifiant de l'utilisateur (facultatif)
  * @returns {Promise<Array>} - Tableau des tenues
  */
-export const getOutfits = async (userId = TEMP_USER_ID) => {
+export const getOutfits = async (userId = null) => {
   try {
+    const finalUserId = userId || await getCurrentUserId();
     const storedData = await AsyncStorage.getItem(
-      `${STORAGE_KEYS.OUTFITS}_${userId}`
+      `${STORAGE_KEYS.OUTFITS}_${finalUserId}`
     );
     return storedData ? JSON.parse(storedData) : [];
   } catch (error) {
@@ -70,10 +82,11 @@ export const getOutfits = async (userId = TEMP_USER_ID) => {
  * @param {string} userId - Identifiant de l'utilisateur (facultatif)
  * @returns {Promise<boolean>} - Succès de la sauvegarde
  */
-export const saveOutfits = async (outfits, userId = TEMP_USER_ID) => {
+export const saveOutfits = async (outfits, userId = null) => {
   try {
+    const finalUserId = userId || await getCurrentUserId();
     await AsyncStorage.setItem(
-      `${STORAGE_KEYS.OUTFITS}_${userId}`,
+      `${STORAGE_KEYS.OUTFITS}_${finalUserId}`,
       JSON.stringify(outfits)
     );
     return true;
@@ -88,10 +101,11 @@ export const saveOutfits = async (outfits, userId = TEMP_USER_ID) => {
  * @param {string} userId - Identifiant de l'utilisateur (facultatif)
  * @returns {Promise<Array>} - Tableau des commandes
  */
-export const getPendingOrders = async (userId = TEMP_USER_ID) => {
+export const getPendingOrders = async (userId = null) => {
   try {
+    const finalUserId = userId || await getCurrentUserId();
     const storedData = await AsyncStorage.getItem(
-      `${STORAGE_KEYS.PENDING_ORDERS}_${userId}`
+      `${STORAGE_KEYS.PENDING_ORDERS}_${finalUserId}`
     );
     return storedData ? JSON.parse(storedData) : [];
   } catch (error) {
@@ -106,10 +120,11 @@ export const getPendingOrders = async (userId = TEMP_USER_ID) => {
  * @param {string} userId - Identifiant de l'utilisateur (facultatif)
  * @returns {Promise<boolean>} - Succès de la sauvegarde
  */
-export const savePendingOrders = async (orders, userId = TEMP_USER_ID) => {
+export const savePendingOrders = async (orders, userId = null) => {
   try {
+    const finalUserId = userId || await getCurrentUserId();
     await AsyncStorage.setItem(
-      `${STORAGE_KEYS.PENDING_ORDERS}_${userId}`,
+      `${STORAGE_KEYS.PENDING_ORDERS}_${finalUserId}`,
       JSON.stringify(orders)
     );
     return true;
@@ -125,9 +140,10 @@ export const savePendingOrders = async (orders, userId = TEMP_USER_ID) => {
  * @param {string} userId - Identifiant de l'utilisateur (facultatif)
  * @returns {Promise<string>} - Identifiant du vêtement ajouté
  */
-export const addClothing = async (clothing, userId = TEMP_USER_ID) => {
+export const addClothing = async (clothing, userId = null) => {
   try {
-    const clothes = await getClothes(userId);
+    const finalUserId = userId || await getCurrentUserId();
+    const clothes = await getClothes(finalUserId);
     const newId = Date.now().toString();
 
     const newClothing = {
@@ -138,7 +154,7 @@ export const addClothing = async (clothing, userId = TEMP_USER_ID) => {
     };
 
     clothes.push(newClothing);
-    await saveClothes(clothes, userId);
+    await saveClothes(clothes, finalUserId);
 
     return newId;
   } catch (error) {
@@ -153,9 +169,10 @@ export const addClothing = async (clothing, userId = TEMP_USER_ID) => {
  * @param {string} userId - Identifiant de l'utilisateur (facultatif)
  * @returns {Promise<boolean>} - Succès de la mise à jour
  */
-export const updateClothing = async (clothing, userId = TEMP_USER_ID) => {
+export const updateClothing = async (clothing, userId = null) => {
   try {
-    const clothes = await getClothes(userId);
+    const finalUserId = userId || await getCurrentUserId();
+    const clothes = await getClothes(finalUserId);
     const index = clothes.findIndex((item) => item.id === clothing.id);
 
     if (index === -1) return false;
@@ -166,7 +183,7 @@ export const updateClothing = async (clothing, userId = TEMP_USER_ID) => {
     };
 
     clothes[index] = updatedClothing;
-    await saveClothes(clothes, userId);
+    await saveClothes(clothes, finalUserId);
 
     return true;
   } catch (error) {
@@ -181,17 +198,18 @@ export const updateClothing = async (clothing, userId = TEMP_USER_ID) => {
  * @param {string} userId - Identifiant de l'utilisateur (facultatif)
  * @returns {Promise<boolean>} - Succès de la suppression
  */
-export const deleteClothing = async (clothingId, userId = TEMP_USER_ID) => {
+export const deleteClothing = async (clothingId, userId = null) => {
   try {
-    const clothes = await getClothes(userId);
+    const finalUserId = userId || await getCurrentUserId();
+    const clothes = await getClothes(finalUserId);
     const filteredClothes = clothes.filter((item) => item.id !== clothingId);
 
     if (filteredClothes.length === clothes.length) return false;
 
-    await saveClothes(filteredClothes, userId);
+    await saveClothes(filteredClothes, finalUserId);
 
     // Mettre à jour les tenues qui contiennent ce vêtement
-    const outfits = await getOutfits(userId);
+    const outfits = await getOutfits(finalUserId);
     let outfitsUpdated = false;
 
     const updatedOutfits = outfits.map((outfit) => {
@@ -208,7 +226,7 @@ export const deleteClothing = async (clothingId, userId = TEMP_USER_ID) => {
     });
 
     if (outfitsUpdated) {
-      await saveOutfits(updatedOutfits, userId);
+      await saveOutfits(updatedOutfits, finalUserId);
     }
 
     return true;
@@ -224,9 +242,10 @@ export const deleteClothing = async (clothingId, userId = TEMP_USER_ID) => {
  * @param {string} userId - Identifiant de l'utilisateur (facultatif)
  * @returns {Promise<string>} - Identifiant de la tenue ajoutée
  */
-export const addOutfit = async (outfit, userId = TEMP_USER_ID) => {
+export const addOutfit = async (outfit, userId = null) => {
   try {
-    const outfits = await getOutfits(userId);
+    const finalUserId = userId || await getCurrentUserId();
+    const outfits = await getOutfits(finalUserId);
     const newId = Date.now().toString();
 
     const newOutfit = {
@@ -237,7 +256,7 @@ export const addOutfit = async (outfit, userId = TEMP_USER_ID) => {
     };
 
     outfits.push(newOutfit);
-    await saveOutfits(outfits, userId);
+    await saveOutfits(outfits, finalUserId);
 
     return newId;
   } catch (error) {
@@ -252,14 +271,15 @@ export const addOutfit = async (outfit, userId = TEMP_USER_ID) => {
  * @param {string} userId - Identifiant de l'utilisateur (facultatif)
  * @returns {Promise<boolean>} - Succès de la suppression
  */
-export const deleteOutfit = async (outfitId, userId = TEMP_USER_ID) => {
+export const deleteOutfit = async (outfitId, userId = null) => {
   try {
-    const outfits = await getOutfits(userId);
+    const finalUserId = userId || await getCurrentUserId();
+    const outfits = await getOutfits(finalUserId);
     const filteredOutfits = outfits.filter((outfit) => outfit.id !== outfitId);
 
     if (filteredOutfits.length === outfits.length) return false;
 
-    await saveOutfits(filteredOutfits, userId);
+    await saveOutfits(filteredOutfits, finalUserId);
     return true;
   } catch (error) {
     console.error("Erreur lors de la suppression de la tenue:", error);
@@ -267,4 +287,197 @@ export const deleteOutfit = async (outfitId, userId = TEMP_USER_ID) => {
   }
 };
 
-// Ajoutez les autres fonctions pour gérer les commandes, etc.
+/**
+ * Ajoute une nouvelle commande en attente
+ * @param {Object} order - Objet commande à ajouter
+ * @param {string} userId - Identifiant de l'utilisateur (facultatif)
+ * @returns {Promise<string>} - Identifiant de la commande ajoutée
+ */
+export const addPendingOrder = async (order, userId = null) => {
+  try {
+    const finalUserId = userId || await getCurrentUserId();
+    const orders = await getPendingOrders(finalUserId);
+    const newId = Date.now().toString();
+
+    const newOrder = {
+      ...order,
+      id: newId,
+      status: "pending",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    orders.push(newOrder);
+    await savePendingOrders(orders, finalUserId);
+
+    return newId;
+  } catch (error) {
+    console.error("Erreur lors de l'ajout de la commande:", error);
+    throw error;
+  }
+};
+
+/**
+ * Met à jour une commande existante
+ * @param {Object} order - Objet commande à mettre à jour
+ * @param {string} userId - Identifiant de l'utilisateur (facultatif)
+ * @returns {Promise<boolean>} - Succès de la mise à jour
+ */
+export const updatePendingOrder = async (order, userId = null) => {
+  try {
+    const finalUserId = userId || await getCurrentUserId();
+    const orders = await getPendingOrders(finalUserId);
+    const index = orders.findIndex((item) => item.id === order.id);
+
+    if (index === -1) return false;
+
+    const updatedOrder = {
+      ...order,
+      updatedAt: new Date().toISOString(),
+    };
+
+    orders[index] = updatedOrder;
+    await savePendingOrders(orders, finalUserId);
+
+    return true;
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour de la commande:", error);
+    return false;
+  }
+};
+
+/**
+ * Supprime une commande en attente
+ * @param {string} orderId - Identifiant de la commande à supprimer
+ * @param {string} userId - Identifiant de l'utilisateur (facultatif)
+ * @returns {Promise<boolean>} - Succès de la suppression
+ */
+export const deletePendingOrder = async (orderId, userId = null) => {
+  try {
+    const finalUserId = userId || await getCurrentUserId();
+    const orders = await getPendingOrders(finalUserId);
+    const filteredOrders = orders.filter((order) => order.id !== orderId);
+
+    if (filteredOrders.length === orders.length) return false;
+
+    await savePendingOrders(filteredOrders, finalUserId);
+    return true;
+  } catch (error) {
+    console.error("Erreur lors de la suppression de la commande:", error);
+    return false;
+  }
+};
+
+/**
+ * Marque une commande comme reçue et ajoute les vêtements au dressing
+ * @param {string} orderId - Identifiant de la commande
+ * @param {string} userId - Identifiant de l'utilisateur (facultatif)
+ * @returns {Promise<Object>} - Résultat de l'opération
+ */
+export const receiveOrder = async (orderId, userId = null) => {
+  try {
+    const finalUserId = userId || await getCurrentUserId();
+    const orders = await getPendingOrders(finalUserId);
+    const orderIndex = orders.findIndex((order) => order.id === orderId);
+
+    if (orderIndex === -1) {
+      return { success: false, message: "Commande non trouvée" };
+    }
+
+    const order = orders[orderIndex];
+    
+    if (order.status === "received") {
+      return { success: false, message: "Cette commande a déjà été reçue" };
+    }
+
+    // Marquer la commande comme reçue
+    orders[orderIndex] = {
+      ...order,
+      status: "received",
+      receivedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Ajouter les articles de la commande au dressing
+    const currentClothes = await getClothes(finalUserId);
+    const newClothes = order.items.map((item) => ({
+      ...item,
+      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }));
+
+    const updatedClothes = [...currentClothes, ...newClothes];
+
+    // Sauvegarder les modifications
+    await savePendingOrders(orders, finalUserId);
+    await saveClothes(updatedClothes, finalUserId);
+
+    return {
+      success: true,
+      message: `Commande reçue ! ${newClothes.length} vêtements ajoutés à votre dressing.`,
+      addedItems: newClothes.length,
+    };
+  } catch (error) {
+    console.error("Erreur lors de la réception de la commande:", error);
+    return {
+      success: false,
+      message: "Une erreur est survenue lors de la réception de la commande",
+    };
+  }
+};
+
+/**
+ * Exporte toutes les données d'un utilisateur
+ * @param {string} userId - Identifiant de l'utilisateur (facultatif)
+ * @returns {Object} - Données de l'utilisateur
+ */
+export const exportUserData = async (userId = null) => {
+  try {
+    const finalUserId = userId || await getCurrentUserId();
+    
+    const clothes = await getClothes(finalUserId);
+    const outfits = await getOutfits(finalUserId);
+    const pendingOrders = await getPendingOrders(finalUserId);
+
+    return {
+      userId: finalUserId,
+      exportDate: new Date().toISOString(),
+      clothes,
+      outfits,
+      pendingOrders,
+    };
+  } catch (error) {
+    console.error("Erreur lors de l'exportation des données:", error);
+    throw error;
+  }
+};
+
+/**
+ * Importe toutes les données pour un utilisateur
+ * @param {Object} data - Données à importer
+ * @param {string} userId - Identifiant de l'utilisateur (facultatif)
+ * @returns {Promise<boolean>} - Succès de l'importation
+ */
+export const importUserData = async (data, userId = null) => {
+  try {
+    const finalUserId = userId || await getCurrentUserId();
+
+    if (data.clothes) {
+      await saveClothes(data.clothes, finalUserId);
+    }
+
+    if (data.outfits) {
+      await saveOutfits(data.outfits, finalUserId);
+    }
+
+    if (data.pendingOrders) {
+      await savePendingOrders(data.pendingOrders, finalUserId);
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Erreur lors de l'importation des données:", error);
+    return false;
+  }
+};
