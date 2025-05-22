@@ -125,8 +125,13 @@ export const logout = async () => {
 
 // Vérifier si un utilisateur est connecté
 export const isLoggedIn = async () => {
-  const user = await getCurrentUser();
-  return !!user;
+  try {
+    const user = await getCurrentUser();
+    return !!user;
+  } catch (error) {
+    console.error("Erreur lors de la vérification de connexion:", error);
+    return false;
+  }
 };
 
 // Créer un nouvel utilisateur (inscription)

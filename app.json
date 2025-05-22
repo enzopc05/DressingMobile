@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Mon Dressing Virtuel",
-    "slug": "dressing-mobile",
+    "slug": "dressing-mobile-v2",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -29,6 +29,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e0550b77-0aa5-4e78-91ea-ce2e7c29778a"
+      }
     }
   }
 }

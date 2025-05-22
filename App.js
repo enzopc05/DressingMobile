@@ -17,11 +17,7 @@ import UserScreen from "./screens/UserScreen";
 import LoginScreen from "./screens/LoginScreen";
 
 // Importer les services - CHANGEMENT ICI
-import {
-  initAuth,
-  getCurrentUser,
-  isLoggedIn,
-} from "./utils/authService";
+import { initAuth, getCurrentUser, isLoggedIn } from "./utils/authService";
 
 // Créer les navigateurs
 const Tab = createBottomTabNavigator();
@@ -41,13 +37,13 @@ function OrdersStack() {
         },
       }}
     >
-      <Stack.Screen 
-        name="CommandesListe" 
+      <Stack.Screen
+        name="CommandesListe"
         component={PendingOrdersScreen}
         options={{ title: "Commandes" }}
       />
-      <Stack.Screen 
-        name="AjouterCommande" 
+      <Stack.Screen
+        name="AjouterCommande"
         component={OrderFormScreen}
         options={{ title: "Gestion de commande" }}
       />
@@ -68,17 +64,25 @@ export default function App() {
     async function prepare() {
       try {
         // Initialiser l'authentification
-        await initAuth();
+        const initSuccess = await initAuth();
+        if (!initSuccess) {
+          throw new Error("Échec de l'initialisation de l'authentification");
+        }
 
         // Vérifier si un utilisateur est connecté
         const loggedIn = await isLoggedIn();
         if (loggedIn) {
           const user = await getCurrentUser();
-          setCurrentUser(user);
-          setIsUserLoggedIn(true);
+          if (user) {
+            setCurrentUser(user);
+            setIsUserLoggedIn(true);
+          }
         }
       } catch (e) {
         console.warn("Erreur de préparation de l'application:", e);
+        // En cas d'erreur, s'assurer que l'utilisateur n'est pas connecté
+        setIsUserLoggedIn(false);
+        setCurrentUser(null);
       } finally {
         setIsReady(true);
         await SplashScreen.hideAsync();
@@ -95,8 +99,8 @@ export default function App() {
   // Si l'utilisateur n'est pas connecté, afficher l'écran de connexion
   if (!isUserLoggedIn) {
     return (
-      <LoginScreen 
-        setIsLoggedIn={setIsUserLoggedIn} 
+      <LoginScreen
+        setIsLoggedIn={setIsUserLoggedIn}
         setCurrentUser={setCurrentUser}
       />
     );
@@ -140,8 +144,8 @@ export default function App() {
         <Tab.Screen name="Vêtements" component={ClothingListScreen} />
         <Tab.Screen name="Ajouter" component={ClothingFormScreen} />
         <Tab.Screen name="Tenues" component={OutfitCreatorScreen} />
-        <Tab.Screen 
-          name="Commandes" 
+        <Tab.Screen
+          name="Commandes"
           component={OrdersStack}
           options={{
             headerShown: false, // Le header sera géré par le Stack
@@ -151,8 +155,8 @@ export default function App() {
         <Tab.Screen
           name="Profil"
           children={() => (
-            <UserScreen 
-              setIsLoggedIn={setIsUserLoggedIn} 
+            <UserScreen
+              setIsLoggedIn={setIsUserLoggedIn}
               setCurrentUser={setCurrentUser}
               currentUser={currentUser}
             />
